@@ -11,7 +11,8 @@ my %xml =
         'minimal with attributes/entities' => [ '<test foo="&amp;" x="&#123;"></test>' ],
         'minimal nested nodes'             => [ '<simple><nested></nested></simple>' ],
         'nested nodes w. attributes'       => [ '<simple><nested><nodes with="attributes"></nodes></nested></simple>' ],
-        'minimal nested nodes w. empty'    => [ '<simple><nested/></simple>' ],
+       'minimal nested nodes w. empty'    => [ '<simple><nested/></simple>' ],
+        'minimal nested nodes w. empty'    => [ '<sim><ple><nested/></ple></sim>' ],
         'simple texnode'                   => [ '<textnode>TEXT</textnode>' ],
         'texnode with entitites'           => [ '<textnode>&amp;&#123;</textnode>' ],
         'texnode with text & entitites'    => [ '<textnode>TEXT&amp;TEXT&#123;TEXT</textnode>' ],
@@ -50,7 +51,7 @@ my %xml =
         # <!ENTITY EndAttr "27'" > <element attribute='a-&EndAttr;>
 
         'xml:lang'                        => [ '<!DOCTYPE greeting [ <!ATTLIST poem   xml:lang CDATA "fr"> ]> <p xml:lang="en">The quick brown fox jumps over the lazy dog.</p>' ],
-        'name 1'                          => [ '<root _foo="name"/>' ],
+        'name 1'                          => [ '<root _xfoo="name"/>' ],
         'name 2'                          => [ '<root f-oo="name"/>' ],
         'name 3'                          => [ '<root f1oo="name"/>' ],
         'unicode textnode'                => [ '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><root>ö</root>' ],
@@ -66,6 +67,12 @@ my %xml =
 my $parser;
 lives_ok( { $parser = XML::Parser.new }, 'instance' );
 
+my $t = '';
+
 for %xml.kv -> $test, @xml {
-        ok( $parser.parse( @xml[0], 'test' ), $test );
+        if !$t || ( $t eq $test )
+        {
+                say "\n\n=========================\n", $test;
+                ok( $parser.parse( @xml[0], 'test' ), $test );
+        }
 }
