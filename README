@@ -1,1 +1,2 @@
-readme
+Due to a rakudo bug, you need to run build before running the tests/using
+it.

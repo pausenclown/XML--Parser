@@ -72,7 +72,11 @@ my $t = '';
 for %xml.kv -> $test, @xml {
         if !$t || ( $t eq $test )
         {
-                say "\n\n=========================\n", $test;
-                ok( $parser.parse( @xml[0], 'test' ), $test );
+                try {
+                        ok( $parser.parse( @xml[0], 'test', 0 ), $test );
+                }
+                if $! {
+                        ok( 0, "$test - Unexpected error: $!" );
+                }
         }
 }

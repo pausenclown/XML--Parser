@@ -1,0 +1,304 @@
+=head1 NAME
+
+XML::Parser - A Perl 6 module for parsing XML documents
+
+=head1 SYNOPSIS
+
+  use XML::Parser;
+
+  my $parser;
+
+  my $xml = '<foo bar="tron">FTFY</foo>';
+   
+  # only parses and checks for wellformedness, also base class for all other
+  # parsing types. parsefile returns the match object (parse tree) of the used grammar.
+
+  $parser = XML::Parser.new( style => 'base' );
+  $parser->parsefile( 'foo.xml' );
+
+  # prints a copy of the parsed document,
+  # parse also returns the match object
+
+  $parser = XML::Parser.new( style => 'test' )
+  $parser->parse( $xml );
+
+  # creates a simplified object tree of the document
+  # which parse returns
+
+  $parser = XML::Parser.new( style => 'simple' )
+  my $st = $parser->parse( $xml )
+
+	say $st<foo>;
+	say $st<foo><name>;
+
+  # creates an object tree of the document
+  # which parse returns
+
+  $parser = XML::Parser.new( style => 'tree' );
+  my $ot = $parser->parse( $xml );
+
+  say $ot.root.name;                 # foo
+	say $ot.root.attributes.bar.value; # tron
+
+  # parses the document and call methods in the handler object,
+  # mapping tag to method names
+
+  class Handler {
+    # handle starting foo tag
+    multi method foo ( XML::Parser::Attribute %attributes ) {
+      say "start foo";
+    }
+
+    # handle closing foo tag
+    multi method foo () {
+      say "close foo";
+    }
+
+    # handle text
+    multi method( XML::Parser::Text $text ) {
+      say "text", $text;
+    };
+  }
+
+  XML::Parser.new( style => 'handlers', handlers => Handler.new ).parse( $xml );
+
+  # parses the document and call methods in the action object.
+
+  class Actions {
+    # handle starting tags
+    method start_tag foo ( XML::Parser::Tag $tag ) {
+      say "start ", $tag.name;
+    }
+
+    # handle closing tags
+    method end_tag foo ( XML::Parser::Tag $tag ) {
+      say "end ", $tag.name;
+    }
+
+    # handle text content
+    method text foo ( XML::Parser::Text $text ) {
+      say "text", $text;
+    }
+  }
+
+  XML::Parser.new( style => 'actions', actions => Actions.new ).parse( $xml );
+
+  # parses the document and call the handler subs
+
+  $parser = XML::Parser.new(
+
+		style => 'subs',
+
+    # handle starting tags
+    start_tag => sub ( XML::Parser::Tag $tag ) {
+      say "start ", $tag.name;
+    }
+
+    # handle closing tags
+    end_tag => sub ( XML::Parser::Tag $tag ) {
+      say "end ", $tag.name;
+    }
+
+    # handle text content
+    text => sub ( XML::Parser::Text $text ) {
+      say "text", $text;
+    }
+
+  ).parse( $xml );
+
+
+=head1 DESCRIPTION
+
+This module provides ways to parse XML documents. It is built in pure Perl 6
+and should run on newer versions of rakudo.
+
+=head1 METHODS
+
+=over 4
+
+=item new
+
+This is a class method, the constructor for XML::Parser. Options are passed
+as keyword value pairs. Recognized options are:
+
+=over 4
+
+=item * style => Str
+
+This option provides an easy way to create a given style of parser. The
+built in styles are: 'base', 'test', 'tree', 'handlers', 'actions', 'subs', and 'simple'.
+These are all defined in separate packages under
+C<XML::Parser::Actions::*>, and you can find further documentation for
+each style in those packages.
+
+C<XML::Parser> uses a C<Perl 6> grammar to operate, the readymade styles are implemented as
+Action classes. You can create your own Action class for the parsing by inheriting
+from C<XML::Parser::Actions::Base>.
+
+=item * handlers => Object
+
+Each time an element starts or ends, a method by that name is called.
+
+=item * actions => Object
+
+Each time a parsing event occurs (like start_tag and end_tag), a method by that name is called.
+
+=item * 'event_name' => Code
+
+When using the 'subs' style, set the event handlers directly in the constructor.
+Read more about parsing events below.
+
+=item * no_expand => 1|0
+
+Normally, the parser will try to expand references to entities defined in the internal subset.
+If this option is set to a true value then the parser will leave them untouched
+or add XML::Parser::Dom::Entity objects to the object tree.
+
+=item * no_parse_param_ent => 1|0
+
+Normally, the parser will try to read and interpret the external DTD, in order to
+parse and expand parameter entities. Setting this to a true value disables that.
+
+=back
+
+=item parse( Str $xml )
+
+The document to parse.
+
+A die call is thrown if a parse error occurs.
+The return value depends on the used style. See 'STYLES'.
+
+=item parsefile( Str $file )
+
+Open $file for reading, then call parse. Returns what parse returns.
+
+=head1 Parsing Events
+
+When using the 'actions' or 'subs' style you will need to create handlers for specific parsing
+events. All parsing events are listed below.
+
+=head2 init ()
+
+This is called just before the parsing of the document starts.
+
+=head2 final ()
+
+This is called just after parsing has finished, but only if no errors occurred during the parse..
+
+=head2 start_tag ( XML::Parser::Dom::Tag $tag )
+
+This is called when an XML start tag is recognized.
+
+=head2 end_tag ( XML::Parser::Dom::Tag $tag )
+
+This is called when an XML end tag is recognized. Note that
+an XML empty tag (<foo/>) generates both a start and an end event.
+
+=head2 text  ( XML::Parser::Dom::Text $text )
+
+This is called when non-markup is recognized.
+
+=head2 processing_instruction ( XML::Parser::Dom::ProcessingInstruction $pi )
+
+This is called when a processing instruction is recognized.
+
+=head2 pi ( XML::Parser::Dom::ProcessingInstruction $pi )
+
+This is an alias for processing_instruction.
+
+=head2 comment ( XML::Parser::Dom::Comment $comment )
+
+This is called when a comment is recognized.
+
+=head2 start_cdata ()
+
+This is called at the start of a CDATA section.
+
+=head2 end_cdata ( XML::Parser::Dom::CDATA $data )
+
+This is called at the end of a CDATA section.
+
+=head2 notation_declaration ( XML::Parser::Dom::NotationDeclaraion $decl )
+
+This is called for a declaration of a notation.
+
+=head2 external_entity ( XML::Parser::Dom::ExternalEntity $ent )
+
+This handler should return a string, which represents the contents of
+the external entity, or return undef, which indicates the
+external entity couldn't be found and will generate a parse error.
+
+However, resolving external entities is currently not supported, due
+to the lack of a LWP package for Perl6.
+
+=head2 entity_declaration ( XML::Parser::Dom::EntityDeclaration $decl )
+
+This is called when an entity is declared.
+
+=head2 element_declaration( XML::Parser::Dom::ElementDeclaration $decl )
+
+The is called when an element declaration is found.
+
+=head2 attlist_declaration ( XML::Parser::Dom::AttlistDeclaration $decl )
+
+This is called for an attribute list declaration.
+
+=head2 start_doctype_declaration ( XML::Parser::Dom::DoctypeDeclaration $decl )
+
+This is called for the start of a doctype declaration.
+
+=head2 end_doctype_declaration ( XML::Parser::Dom::DoctypeDeclaration $decl )
+
+This is called for the end of DOCTYPE declaration.
+
+=head2 xml_declaration ( XML::Parser::Dom::XmlDeclaration $decl )
+
+This is called for an xml declaration.
+
+=head1 STYLES
+
+=head2 base
+
+This is the base style used by all other styles. It just checks the document for wellformedness.
+parse returns the parse tree of the grammar.
+
+=head2 test
+
+This just prints out the document in outline form.
+parse also returns the parse tree of the grammar.
+
+=head2 handlers
+
+Each time an element starts, a sub by that name gets called on the Object specified
+by the 'handlers' option with a hash of Attributes as the only
+parameter.
+
+Each time an element ends, a sub with that name is called with no parameters.
+
+=head2 actions
+
+Each time a parsing event occurs, a sub by that name in the Object specified
+by the 'actions' option is called. For information about their parameters
+refer to the Events section.
+
+=head2 subs
+
+Each time a parsing event occurs, a corresponding sub, which gets specified
+in the constructor is called. For information about their parameters
+refer to the Events section.
+
+=head2 tree
+
+Parse will return a parse tree for the document. Each node in the tree
+is represented by objects out of the C<XML::Parser::Dom::*> namespace.
+
+=head2 simple
+
+Parse will return a simple datastructure of hashes and arrays,
+representing the content of the document.
+
+=head1 AUTHORS
+
+Markus Holzer <F<holli.holzer@googlemail.com>>
+
+=cut

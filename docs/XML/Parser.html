@@ -1,0 +1,376 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>XML::Parser - A Perl 6 module for parsing XML documents</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body style="background-color: white">
+
+
+<!-- INDEX BEGIN -->
+<div name="index">
+<p><a name="__index__"></a></p>
+
+<ul>
+
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#methods">METHODS</a></li>
+	<li><a href="#parsing_events">Parsing Events</a></li>
+	<ul>
+
+		<li><a href="#init___">init ()</a></li>
+		<li><a href="#final___">final ()</a></li>
+		<li><a href="#start_tag___xml__parser__dom__tag__tag__">start_tag ( XML::Parser::Dom::Tag $tag )</a></li>
+		<li><a href="#end_tag___xml__parser__dom__tag__tag__">end_tag ( XML::Parser::Dom::Tag $tag )</a></li>
+		<li><a href="#text___xml__parser__dom__text__text__">text  ( XML::Parser::Dom::Text $text )</a></li>
+		<li><a href="#processing_instruction___xml__parser__dom__processinginstruction__pi__">processing_instruction ( XML::Parser::Dom::ProcessingInstruction $pi )</a></li>
+		<li><a href="#pi___xml__parser__dom__processinginstruction__pi__">pi ( XML::Parser::Dom::ProcessingInstruction $pi )</a></li>
+		<li><a href="#comment___xml__parser__dom__comment__comment__">comment ( XML::Parser::Dom::Comment $comment )</a></li>
+		<li><a href="#start_cdata___">start_cdata ()</a></li>
+		<li><a href="#end_cdata___xml__parser__dom__cdata__data__">end_cdata ( XML::Parser::Dom::CDATA $data )</a></li>
+		<li><a href="#notation_declaration___xml__parser__dom__notationdeclaraion__decl__">notation_declaration ( XML::Parser::Dom::NotationDeclaraion $decl )</a></li>
+		<li><a href="#external_entity___xml__parser__dom__externalentity__ent__">external_entity ( XML::Parser::Dom::ExternalEntity $ent )</a></li>
+		<li><a href="#entity_declaration___xml__parser__dom__entitydeclaration__decl__">entity_declaration ( XML::Parser::Dom::EntityDeclaration $decl )</a></li>
+		<li><a href="#element_declaration__xml__parser__dom__elementdeclaration__decl__">element_declaration( XML::Parser::Dom::ElementDeclaration $decl )</a></li>
+		<li><a href="#attlist_declaration___xml__parser__dom__attlistdeclaration__decl__">attlist_declaration ( XML::Parser::Dom::AttlistDeclaration $decl )</a></li>
+		<li><a href="#start_doctype_declaration___xml__parser__dom__doctypedeclaration__decl__">start_doctype_declaration ( XML::Parser::Dom::DoctypeDeclaration $decl )</a></li>
+		<li><a href="#end_doctype_declaration___xml__parser__dom__doctypedeclaration__decl__">end_doctype_declaration ( XML::Parser::Dom::DoctypeDeclaration $decl )</a></li>
+		<li><a href="#xml_declaration___xml__parser__dom__xmldeclaration__decl__">xml_declaration ( XML::Parser::Dom::XmlDeclaration $decl )</a></li>
+	</ul>
+
+	<li><a href="#styles">STYLES</a></li>
+	<ul>
+
+		<li><a href="#base">base</a></li>
+		<li><a href="#test">test</a></li>
+		<li><a href="#handlers">handlers</a></li>
+		<li><a href="#actions">actions</a></li>
+		<li><a href="#subs">subs</a></li>
+		<li><a href="#tree">tree</a></li>
+		<li><a href="#simple">simple</a></li>
+	</ul>
+
+	<li><a href="#authors">AUTHORS</a></li>
+</ul>
+
+<hr name="index" />
+</div>
+<!-- INDEX END -->
+
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>XML::Parser - A Perl 6 module for parsing XML documents</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<pre>
+  use XML::Parser;</pre>
+<pre>
+  my $parser;</pre>
+<pre>
+  my $xml = '&lt;foo bar=&quot;tron&quot;&gt;FTFY&lt;/foo&gt;';
+   
+  # only parses and checks for wellformedness, also base class for all other
+  # parsing types. parsefile returns the match object (parse tree) of the used grammar.</pre>
+<pre>
+  $parser = XML::Parser.new( style =&gt; 'base' );
+  $parser-&gt;parsefile( 'foo.xml' );</pre>
+<pre>
+  # prints a copy of the parsed document,
+  # parse also returns the match object</pre>
+<pre>
+  $parser = XML::Parser.new( style =&gt; 'test' )
+  $parser-&gt;parse( $xml );</pre>
+<pre>
+  # creates a simplified object tree of the document
+  # which parse returns</pre>
+<pre>
+  $parser = XML::Parser.new( style =&gt; 'simple' )
+  my $st = $parser-&gt;parse( $xml )</pre>
+<pre>
+        say $st&lt;foo&gt;;
+        say $st&lt;foo&gt;&lt;name&gt;;</pre>
+<pre>
+  # creates an object tree of the document
+  # which parse returns</pre>
+<pre>
+  $parser = XML::Parser.new( style =&gt; 'tree' );
+  my $ot = $parser-&gt;parse( $xml );</pre>
+<pre>
+  say $ot.root.name;                 # foo
+        say $ot.root.attributes.bar.value; # tron</pre>
+<pre>
+  # parses the document and call methods in the handler object,
+  # mapping tag to method names</pre>
+<pre>
+  class Handler {
+    # handle starting foo tag
+    multi method foo ( XML::Parser::Attribute %attributes ) {
+      say &quot;start foo&quot;;
+    }</pre>
+<pre>
+    # handle closing foo tag
+    multi method foo () {
+      say &quot;close foo&quot;;
+    }</pre>
+<pre>
+    # handle text
+    multi method( XML::Parser::Text $text ) {
+      say &quot;text&quot;, $text;
+    };
+  }</pre>
+<pre>
+  XML::Parser.new( style =&gt; 'handlers', handlers =&gt; Handler.new ).parse( $xml );</pre>
+<pre>
+  # parses the document and call methods in the action object.</pre>
+<pre>
+  class Actions {
+    # handle starting tags
+    method start_tag foo ( XML::Parser::Tag $tag ) {
+      say &quot;start &quot;, $tag.name;
+    }</pre>
+<pre>
+    # handle closing tags
+    method end_tag foo ( XML::Parser::Tag $tag ) {
+      say &quot;end &quot;, $tag.name;
+    }</pre>
+<pre>
+    # handle text content
+    method text foo ( XML::Parser::Text $text ) {
+      say &quot;text&quot;, $text;
+    }
+  }</pre>
+<pre>
+  XML::Parser.new( style =&gt; 'actions', actions =&gt; Actions.new ).parse( $xml );</pre>
+<pre>
+  # parses the document and call the handler subs</pre>
+<pre>
+  $parser = XML::Parser.new(</pre>
+<pre>
+                style =&gt; 'subs',</pre>
+<pre>
+    # handle starting tags
+    start_tag =&gt; sub ( XML::Parser::Tag $tag ) {
+      say &quot;start &quot;, $tag.name;
+    }</pre>
+<pre>
+    # handle closing tags
+    end_tag =&gt; sub ( XML::Parser::Tag $tag ) {
+      say &quot;end &quot;, $tag.name;
+    }</pre>
+<pre>
+    # handle text content
+    text =&gt; sub ( XML::Parser::Text $text ) {
+      say &quot;text&quot;, $text;
+    }</pre>
+<pre>
+  ).parse( $xml );</pre>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<p>This module provides ways to parse XML documents. It is built in pure Perl 6
+and should run on newer versions of rakudo.</p>
+<p>
+</p>
+<hr />
+<h1><a name="methods">METHODS</a></h1>
+<dl>
+<dt><strong><a name="new" class="item">new</a></strong></dt>
+
+<dd>
+<p>This is a class method, the constructor for XML::Parser. Options are passed
+as keyword value pairs. Recognized options are:</p>
+<ul>
+<li><strong><a name="style_str" class="item">style =&gt; Str</a></strong>
+
+<p>This option provides an easy way to create a given style of parser. The
+built in styles are: 'base', 'test', 'tree', 'handlers', 'actions', 'subs', and 'simple'.
+These are all defined in separate packages under
+<code>XML::Parser::Actions::*</code>, and you can find further documentation for
+each style in those packages.</p>
+<p><code>XML::Parser</code> uses a <code>Perl 6</code> grammar to operate, the readymade styles are implemented as
+Action classes. You can create your own Action class for the parsing by inheriting
+from <code>XML::Parser::Actions::Base</code>.</p>
+</li>
+<li><strong><a name="handlers_object" class="item">handlers =&gt; Object</a></strong>
+
+<p>Each time an element starts or ends, a method by that name is called.</p>
+</li>
+<li><strong><a name="actions_object" class="item">actions =&gt; Object</a></strong>
+
+<p>Each time a parsing event occurs (like start_tag and end_tag), a method by that name is called.</p>
+</li>
+<li><strong><a name="event_name_code" class="item">'event_name' =&gt; Code</a></strong>
+
+<p>When using the 'subs' style, set the event handlers directly in the constructor.
+Read more about parsing events below.</p>
+</li>
+<li><strong><a name="no_expand_1_0" class="item">no_expand =&gt; 1|0</a></strong>
+
+<p>Normally, the parser will try to expand references to entities defined in the internal subset.
+If this option is set to a true value then the parser will leave them untouched
+or add XML::Parser::Dom::Entity objects to the object tree.</p>
+</li>
+<li><strong><a name="no_parse_param_ent_1_0" class="item">no_parse_param_ent =&gt; 1|0</a></strong>
+
+<p>Normally, the parser will try to read and interpret the external DTD, in order to
+parse and expand parameter entities. Setting this to a true value disables that.</p>
+</li>
+</ul>
+</dd>
+<dt><strong><a name="parse" class="item">parse( Str $xml )</a></strong></dt>
+
+<dd>
+<p>The document to parse.</p>
+<p>A die call is thrown if a parse error occurs.
+The return value depends on the used style. See 'STYLES'.</p>
+</dd>
+<dt><strong><a name="parsefile" class="item">parsefile( Str $file )</a></strong></dt>
+
+<dd>
+<p>Open $file for reading, then call parse. Returns what parse returns.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="parsing_events">Parsing Events</a></h1>
+<p>When using the 'actions' or 'subs' style you will need to create handlers for specific parsing
+events. All parsing events are listed below.</p>
+<p>
+</p>
+<h2><a name="init___">init ()</a></h2>
+<p>This is called just before the parsing of the document starts.</p>
+<p>
+</p>
+<h2><a name="final___">final ()</a></h2>
+<p>This is called just after parsing has finished, but only if no errors occurred during the parse..</p>
+<p>
+</p>
+<h2><a name="start_tag___xml__parser__dom__tag__tag__">start_tag ( XML::Parser::Dom::Tag $tag )</a></h2>
+<p>This is called when an XML start tag is recognized.</p>
+<p>
+</p>
+<h2><a name="end_tag___xml__parser__dom__tag__tag__">end_tag ( XML::Parser::Dom::Tag $tag )</a></h2>
+<p>This is called when an XML end tag is recognized. Note that
+an XML empty tag (&lt;foo/&gt;) generates both a start and an end event.</p>
+<p>
+</p>
+<h2><a name="text___xml__parser__dom__text__text__">text  ( XML::Parser::Dom::Text $text )</a></h2>
+<p>This is called when non-markup is recognized.</p>
+<p>
+</p>
+<h2><a name="processing_instruction___xml__parser__dom__processinginstruction__pi__">processing_instruction ( XML::Parser::Dom::ProcessingInstruction $pi )</a></h2>
+<p>This is called when a processing instruction is recognized.</p>
+<p>
+</p>
+<h2><a name="pi___xml__parser__dom__processinginstruction__pi__">pi ( XML::Parser::Dom::ProcessingInstruction $pi )</a></h2>
+<p>This is an alias for processing_instruction.</p>
+<p>
+</p>
+<h2><a name="comment___xml__parser__dom__comment__comment__">comment ( XML::Parser::Dom::Comment $comment )</a></h2>
+<p>This is called when a comment is recognized.</p>
+<p>
+</p>
+<h2><a name="start_cdata___">start_cdata ()</a></h2>
+<p>This is called at the start of a CDATA section.</p>
+<p>
+</p>
+<h2><a name="end_cdata___xml__parser__dom__cdata__data__">end_cdata ( XML::Parser::Dom::CDATA $data )</a></h2>
+<p>This is called at the end of a CDATA section.</p>
+<p>
+</p>
+<h2><a name="notation_declaration___xml__parser__dom__notationdeclaraion__decl__">notation_declaration ( XML::Parser::Dom::NotationDeclaraion $decl )</a></h2>
+<p>This is called for a declaration of a notation.</p>
+<p>
+</p>
+<h2><a name="external_entity___xml__parser__dom__externalentity__ent__">external_entity ( XML::Parser::Dom::ExternalEntity $ent )</a></h2>
+<p>This handler should return a string, which represents the contents of
+the external entity, or return undef, which indicates the
+external entity couldn't be found and will generate a parse error.</p>
+<p>However, resolving external entities is currently not supported, due
+to the lack of a LWP package for Perl6.</p>
+<p>
+</p>
+<h2><a name="entity_declaration___xml__parser__dom__entitydeclaration__decl__">entity_declaration ( XML::Parser::Dom::EntityDeclaration $decl )</a></h2>
+<p>This is called when an entity is declared.</p>
+<p>
+</p>
+<h2><a name="element_declaration__xml__parser__dom__elementdeclaration__decl__">element_declaration( XML::Parser::Dom::ElementDeclaration $decl )</a></h2>
+<p>The is called when an element declaration is found.</p>
+<p>
+</p>
+<h2><a name="attlist_declaration___xml__parser__dom__attlistdeclaration__decl__">attlist_declaration ( XML::Parser::Dom::AttlistDeclaration $decl )</a></h2>
+<p>This is called for an attribute list declaration.</p>
+<p>
+</p>
+<h2><a name="start_doctype_declaration___xml__parser__dom__doctypedeclaration__decl__">start_doctype_declaration ( XML::Parser::Dom::DoctypeDeclaration $decl )</a></h2>
+<p>This is called for the start of a doctype declaration.</p>
+<p>
+</p>
+<h2><a name="end_doctype_declaration___xml__parser__dom__doctypedeclaration__decl__">end_doctype_declaration ( XML::Parser::Dom::DoctypeDeclaration $decl )</a></h2>
+<p>This is called for the end of DOCTYPE declaration.</p>
+<p>
+</p>
+<h2><a name="xml_declaration___xml__parser__dom__xmldeclaration__decl__">xml_declaration ( XML::Parser::Dom::XmlDeclaration $decl )</a></h2>
+<p>This is called for an xml declaration.</p>
+<p>
+</p>
+<hr />
+<h1><a name="styles">STYLES</a></h1>
+<p>
+</p>
+<h2><a name="base">base</a></h2>
+<p>This is the base style used by all other styles. It just checks the document for wellformedness.
+parse returns the parse tree of the grammar.</p>
+<p>
+</p>
+<h2><a name="test">test</a></h2>
+<p>This just prints out the document in outline form.
+parse also returns the parse tree of the grammar.</p>
+<p>
+</p>
+<h2><a name="handlers">handlers</a></h2>
+<p>Each time an element starts, a sub by that name gets called on the Object specified
+by the 'handlers' option with a hash of Attributes as the only
+parameter.</p>
+<p>Each time an element ends, a sub with that name is called with no parameters.</p>
+<p>
+</p>
+<h2><a name="actions">actions</a></h2>
+<p>Each time a parsing event occurs, a sub by that name in the Object specified
+by the 'actions' option is called. For information about their parameters
+refer to the Events section.</p>
+<p>
+</p>
+<h2><a name="subs">subs</a></h2>
+<p>Each time a parsing event occurs, a corresponding sub, which gets specified
+in the constructor is called. For information about their parameters
+refer to the Events section.</p>
+<p>
+</p>
+<h2><a name="tree">tree</a></h2>
+<p>Parse will return a parse tree for the document. Each node in the tree
+is represented by objects out of the <code>XML::Parser::Dom::*</code> namespace.</p>
+<p>
+</p>
+<h2><a name="simple">simple</a></h2>
+<p>Parse will return a simple datastructure of hashes and arrays,
+representing the content of the document.</p>
+<p>
+</p>
+<hr />
+<h1><a name="authors">AUTHORS</a></h1>
+<p>Markus Holzer &lt;<em class="file"><a href="mailto:holli.holzer@googlemail.com">holli.holzer@googlemail.com</a></em>&gt;</p>
+
+</body>
+
+</html>

@@ -1,0 +1,21 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+
+my @bootstrap = (
+	'XML/Parser/Actions/Base.pm',
+	'XML/Parser/Grammar.pm',
+	'XML/Parser/Parser.pm'
+);
+
+open my $out, '>', 'XML/Parser.pm' or die $!;
+
+for my $file ( @bootstrap ) {
+	open my $in, '<', $file or die "In $file: $!";
+	while (<$in>) { print $out $_ }
+	close $in;
+}
+
+close $out;
+
