@@ -1,0 +1,2 @@
+class XParser::Dom::Node {
+}
