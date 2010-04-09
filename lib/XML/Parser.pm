@@ -197,18 +197,10 @@ is    XML::Parser::Dom::ParentalNode
     }
 }
 
-class XParser::Dom::EntityDefinition {
-        has Str $.name is rw;
-        has Str $.type is rw;
-        has Str $.code is rw;
-        has Str $.text is rw;
+class XML::Parser::Dom::Entity {
 }
 
-class XML::Parser::Dom::Entity {
-    has Str $.name is rw;
-    has Str $.type is rw;
-    has Str $.code is rw;
-    has Str $.text is rw;
+class XML::Parser::Dom::EntityReference {
 }
 
 
@@ -344,15 +336,13 @@ class XML::Parser::Actions::Base {
     method _add_attributes( $element, $match  ) {
         if $match<attributes>
         {
-            say $element.name, "_add_attributes", $match<attributes>, '-';
             for  $match<attributes>[0] -> $a
             {
-                say "add_attribute", $a;
                 $element.add_attribute(
                     "{$a<attribute><att_name>[0]}",
                     $a<attribute><att_value><att_value_dq> ?? "{$a<attribute><att_value><att_value_dq><att_value_dv>}" !!
                     $a<attribute><att_value><att_value_sq> ?? "{$a<attribute><att_value><att_value_sq><att_value_sv>}" !!
-                    die "Wow, that came unexpected"
+                    die "Wow, that came unexpected! Ask your deity for assistance."
                 );
             }
         }

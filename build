@@ -37,3 +37,4 @@ for my $file ( @bootstrap ) {
 
 close $out;
 
+system('perl6', '--target=PIR', '--output=lib/XML/Parser.pir', 'lib/XML/Parser.pm');
