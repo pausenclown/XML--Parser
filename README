@@ -1,2 +1,6 @@
-Due to a rakudo bug, you need to run build before running the tests/using
-it.
+This module provides ways to parse XML documents. It is built in pure Perl 6
+and should run on newer versions of rakudo.
+
+Due to a rakudo bug, you need to run 'build' before running the tests/using it.
+
+

@@ -1,7 +1,12 @@
-use XParser::Dom::Node;
-use XParser::Dom::Attribute;
+class XML::Parser::Dom::ProcessingInstruction
+is    XML::Parser::Dom::Node
+{
+    has Str $.target is rw;
+    has Str $.data   is rw;
 
-class XParser::Dom::ProcessingInstruction is XParser::Dom::Node {
-        has Str $.name is rw = "";
-        has XParser::Dom::Attribute @.attributes;
+    method xml {
+        "<?{self.target} {self.data}?>";
+    }
 }
+
+

@@ -192,18 +192,19 @@ grammar XML::Parser::Grammar {
                 [
                         xml { die "!Syntax Error in DOCUMENT, XML-Declaration misplaced" }
                         |
-                        <pi_target> ( <wts> <char>* <?before \? \>>)?  {*}
+                        <pi_target> <wts> <pi_data>?
                 ]
                 <pi_end> }
 
         token pi_start { \< \?  }
         token pi_end { \? \> }
+        token pi_data { <char>*? <?before \? \>> }
 
         # [17]    PITarget     ::=    Name - (('X' | 'x') ('M' | 'm') ('L' | 'l'))
         token pi_target { <name> }
 
         # [18]    CDSect     ::=    CDStart CData CDEnd
-        token cd_sect {   <cd_start>    <c_data> { say "##", $/<c_data>, "##"}  <cd_end> }
+        token cd_sect {   <cd_start> <c_data> <cd_end> }
 
         # [19]    CDStart    ::=    '<![CDATA['
          token cd_start { \< \! \[ CDATA \[ }
@@ -387,14 +388,16 @@ grammar XML::Parser::Grammar {
         token sd_decl_value {
                 [
                         \"                       #"
-                        [ yes|no ]
+                        <sd_value>
                         \"                       #"
                         |
                         \'                       #'
-                        [ yes|no ]
+                        <sd_value>
                         \'                       #'
                 ]
         }
+
+        token sd_value { [ yes|no ] }
 
         # [39]    element    ::=
         token root {
@@ -446,9 +449,9 @@ grammar XML::Parser::Grammar {
 
         # [41]    Attribute    ::=    Name Eq AttValue
         token attribute {
-                {say '!?'}
+#                {say '!?'}
                 <att_name>*
-                {say '??'}
+#                {say '??'}
                 <equal>
                 { die "#" unless $<att_name> }
 
@@ -477,7 +480,7 @@ grammar XML::Parser::Grammar {
 
         # [43]    content    ::=    CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
         token content {
-                <cd>?
+                <text_node>?
                 [
                         [
                                 | <element>
@@ -491,27 +494,22 @@ grammar XML::Parser::Grammar {
                                 | <comment> :
                                 # { say '*comment ',$<comment> }
                         ]
-                        <cd>?
+                        <text_node>?
                 ] *
         }
+
+        token text_node { <cd> }
 
         token cd { <-[ \& \< ]>+ }
 
         # [44]    EmptyElemTag     ::=    '<' Name (S Attribute)* S? '/>'
         token empty_elem_tag {
-                # {say "..ee $/" }
                 \<
-                # {say "...ee $/" }
                 <empty_elem_name>
-                 # {say "....ee $/" } <rest>
                 [
-                        # {say "." }
-                        <wts>?
-                        # { say ".." }
-                        \/ \>
-                        # {say "...." }
+                        <wts>? \/ \>
                         |
-                        (<wts> <attribute>)+ <wts>? \/ \>
+                        <attributes> <wts>? \/ \>
                 ]
         } #/
 

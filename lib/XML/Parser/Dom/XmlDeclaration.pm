@@ -1,7 +1,10 @@
-# use XML::Parser::Dom::Node;
-# use XML::Parser::Dom::Attribute;
+class XML::Parser::Dom::XmlDeclaration {
+    has Str $.version    is rw = "1.0";
+    has Str $.encoding   is rw = "UTF-8";
+    has Str $.standalone is rw = "yes";
 
-class XML::Parser::Dom::ProcessingInstruction is XML::Parser::Dom::Node {
-        has Str $.name is rw = "";
-        has XML::Parser::Dom::Attribute @.attributes;
+    method xml {
+        "<?xml version=\"{self.version}\" encoding=\"{self.encoding}\" standalone=\"{self.standalone}\"?>"
+    }
 }
+

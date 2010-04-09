@@ -38,7 +38,7 @@ is    XML::Parser::Actions::Base
 
     multi method text( XML::Parser::Dom::Text $t ) {
         if self.parser.handlers.can('text') {
-            self.parser.handlers.text( $t );
+            self.parser.handlers.text( $t, self.parser.context );
         }
     }
 }

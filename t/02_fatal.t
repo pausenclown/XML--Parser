@@ -5,10 +5,10 @@ my %xml = {
         'illegal content'                      => [ '<root>text</root>trash', "Syntax Error after ROOT, illegal content" ],
         'illegalcontent'                       => [ 'trash<root>text</root>', "Syntax Error before ROOT, illegal content" ],
 
-        'no root node, but prolog'             => [ '<!-- no root node -->', 'Syntax Error before ROOT, missing root element' ], 
-        'no root node, but text'               => [ 'x', 'Syntax Error before ROOT, illegal content' ], 
-        'no root node, empty'                  => [ '', 'Syntax Error in DOCUMENT, no content' ], 
-        'no root node, only ws'                => [ ' ', 'Syntax Error before ROOT, missing root element' ], 
+        'no root node, but prolog'             => [ '<!-- no root node -->', 'Syntax Error before ROOT, missing root element' ],
+        'no root node, but text'               => [ 'x', 'Syntax Error before ROOT, illegal content' ],
+        'no root node, empty'                  => [ '', 'Syntax Error in DOCUMENT, no content' ],
+        'no root node, only ws'                => [ ' ', 'Syntax Error before ROOT, missing root element' ],
         'nesting error'                        => [ '<root><nested></root><root>< /root>', 'Syntax-Error in Element, closing Tag "root" doesn\'t match "nested"' ],
 
         'doctype, missing ]'                   => [ '<!DOCTYPE foo [ trash ]>', 'Syntax Error in DOCTYPE declaration, missing "]"' ],
@@ -31,7 +31,7 @@ my %xml = {
         'char reference, missing ;'            => [ '<foo>&#123</foo>', 'Syntax Error in CHAR-Reference, missing ";"'],
         'char reference, missing #'            => [ '<foo>&123</foo>', 'Syntax Error in CHAR-Reference, missing "#"'],
         'char reference, missing value'        => [ '<foo>&#;</foo>', 'Syntax Error in CHAR-Reference, missing "value"'],
-        
+
         'xml_decl misplaced'                   => [ '<root><?xml version = "1.0" ?></root>', 'Syntax Error in DOCUMENT, XML-Declaration misplaced' ],
         'xml_decl, version borked'             => [ '<?xml version="1" ?><root/>', 'Syntax Error in XML-Declaration, "version" not like "1.*"' ],
         'xml_decl, encoding borked'            => [ '<?xml version="1.0" encoding="UTF!8" ?><root/>', 'Syntax Error in XML-Deklaration, unknown "encoding"' ],
@@ -51,15 +51,15 @@ my %xml = {
 my $parser;
 lives_ok( { $parser = XML::Parser.new }, 'instance' );
 
-my $t = 'illegal attribute name -foo';
- 
+my $t = '';
+
 for %xml.kv -> $test, $args {
 
         if !$t || ( $t eq $test )
         {
-                try { XML::Parser.new.parse( $args[0], 'test', 1 ); }
+                try { XML::Parser.new.parse( $args[0], 'dom', 1 ); }
 
-                if $! && "$!" eq $args[1] 
+                if $! && "$!" eq $args[1]
                 {
                         ok(1, $test);
                 }
@@ -67,16 +67,16 @@ for %xml.kv -> $test, $args {
                 {
                         ok(0, $test);
                         say "got: <{$!}>";
-                        say "expected: <{$args[1]}>", 
+                        say "expected: <{$args[1]}>",
                 }
         }
 }
 
 
 exit;
-# 
-# 
+#
+#
 # # ok( $! && "$!" ~~ /Unknown \s ENTITY \s \( glt \)/, "unknown entities croak" );
-# # 
+# #
 # # try { XML::Parser.new(parseDebug=>0).parse($xml) };
-# # ok( $! && "$!" ~~ "Unknown namespace (xsi)", 'unknown namespace' ); 
+# # ok( $! && "$!" ~~ "Unknown namespace (xsi)", 'unknown namespace' );

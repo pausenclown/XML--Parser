@@ -4,12 +4,30 @@ use warnings;
 use strict;
 
 my @bootstrap = (
-	'XML/Parser/Actions/Base.pm',
-	'XML/Parser/Grammar.pm',
-	'XML/Parser/Parser.pm'
+    'lib/XML/Parser/Namespace.pm',
+    'lib/XML/Parser/Dom/XmlDeclaration.pm',
+    'lib/XML/Parser/Dom/Attribute.pm',
+    'lib/XML/Parser/Dom/Node.pm',
+    'lib/XML/Parser/Dom/ParentalNode.pm',
+    'lib/XML/Parser/Dom/Text.pm',
+    'lib/XML/Parser/Dom/CData.pm',
+    'lib/XML/Parser/Dom/Comment.pm',
+    'lib/XML/Parser/Dom/DocumentType.pm',
+    'lib/XML/Parser/Dom/Document.pm',
+    'lib/XML/Parser/Dom/Entity.pm',
+    'lib/XML/Parser/Dom/EntityReference.pm',
+    'lib/XML/Parser/Dom/ProcessingInstruction.pm',
+    'lib/XML/Parser/Dom/Element.pm',
+    'lib/XML/Parser/Actions/Base.pm',
+    'lib/XML/Parser/Actions/Test.pm',
+    'lib/XML/Parser/Actions/Debug.pm',
+    'lib/XML/Parser/Actions/Handlers.pm',
+    'lib/XML/Parser/Actions/Dom.pm',
+    'lib/XML/Parser/Grammar.pm',
+    'lib/XML/Parser/Parser.pm'
 );
 
-open my $out, '>', 'XML/Parser.pm' or die $!;
+open my $out, '>', 'lib/XML/Parser.pm' or die $!;
 
 for my $file ( @bootstrap ) {
 	open my $in, '<', $file or die "In $file: $!";

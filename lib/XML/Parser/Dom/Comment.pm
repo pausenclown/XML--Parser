@@ -1,5 +1,9 @@
-use XParser::Dom::Node;
+# use XML::Parser::Dom::Node;
 
-class XParser::Dom::Comment is XParser::Dom::Node {
-        has Str $.text is rw;
+class XML::Parser::Dom::Comment is XML::Parser::Dom::Node {
+    has Str $.data is rw;
+    method xml {
+        "<!--{ self.data }-->";
+    }
 }
+

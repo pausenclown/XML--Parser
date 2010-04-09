@@ -73,7 +73,7 @@ for %xml.kv -> $test, @xml {
         if !$t || ( $t eq $test )
         {
                 try {
-                        ok( $parser.parse( @xml[0], 'test', 0 ), $test );
+                        ok( $parser.parse( @xml[0], 'dom', 0 ), $test );
                 }
                 if $! {
                         ok( 0, "$test - Unexpected error: $!" );

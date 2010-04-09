@@ -1,4 +1,5 @@
-class XParser::Dom::Namespace {
-        has Str $.name is rw = "";
-        has Str $.url is rw = "";
+class XML::Parser::Namespace {
+    has Str $.name is rw = "";
+    has Str $.uri  is rw = "";
 }
+
