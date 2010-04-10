@@ -57,5 +57,5 @@ ok( $parser.document.root.child_nodes[4].attributes[1].value eq 'y', "attr value
 ok( $parser.document.root.child_nodes[5].node_type eq 'Comment', "node type comment" );
 ok( $parser.document.root.child_nodes[5].data eq ' comment ', "comment data" );
 
-say "Expect\n$expect";
-say "Got\n{$parser.document}";
+# say "Expect\n$expect";
+# say "Got\n{$parser.document}";

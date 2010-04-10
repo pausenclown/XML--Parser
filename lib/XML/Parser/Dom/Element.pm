@@ -32,9 +32,9 @@ is    XML::Parser::Dom::ParentalNode
 
     multi method add_attribute( $name, $value )
     {
-        say "add_attribute ", self.name, '-', $name, '+', $value, '!', $name.WHAT, '+', $value.WHAT;
+        # say "add_attribute ", self.name, '-', $name, '+', $value, '!', $name.WHAT, '+', $value.WHAT;
         self.attributes.push( XML::Parser::Dom::Attribute.new( name  => $name, value => $value ) );
-        say "<add_attribute ";
+        # say "<add_attribute ";
     }
 
     multi method add_attribute( XML::Parser::Dom::Attribute $a )

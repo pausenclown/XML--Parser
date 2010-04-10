@@ -250,9 +250,9 @@ is    XML::Parser::Dom::ParentalNode
 
     multi method add_attribute( $name, $value )
     {
-        say "add_attribute ", self.name, '-', $name, '+', $value, '!', $name.WHAT, '+', $value.WHAT;
+        # say "add_attribute ", self.name, '-', $name, '+', $value, '!', $name.WHAT, '+', $value.WHAT;
         self.attributes.push( XML::Parser::Dom::Attribute.new( name  => $name, value => $value ) );
-        say "<add_attribute ";
+        # say "<add_attribute ";
     }
 
     multi method add_attribute( XML::Parser::Dom::Attribute $a )
@@ -304,13 +304,12 @@ class XML::Parser::Actions::Base {
         my $element = XML::Parser::Dom::Element.new(
             local_name => "{$<s_tag_name>}"
         );
-
-
+        self._add_attributes( $element, $/ );
         self.start_tag( $element );
         self.parser.context = $element;
         self.parser.stack.push( self.parser.context );
 
-        self._add_attributes( $element, $/ );
+        
     }
 
     multi method e_tag( $/, $w? ) {
@@ -326,7 +325,6 @@ class XML::Parser::Actions::Base {
         my $element = XML::Parser::Dom::Element.new(
             local_name => "{$/<empty_elem_name>}"
         );
-
         self._add_attributes( $element, $/ );
 
         self.start_tag( $element );
@@ -357,8 +355,6 @@ class XML::Parser::Actions::Base {
         $text = $text.subst(/ \s+ $ /, '');
 
         return unless $text;
-
-        $text = $text.subst(/ <[ \x0D \x0A ]>+ $ /, ' ');
 
         self.text( XML::Parser::Dom::Text.new(
             data => $text

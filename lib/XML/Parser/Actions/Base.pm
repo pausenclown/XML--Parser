@@ -39,13 +39,12 @@ class XML::Parser::Actions::Base {
         my $element = XML::Parser::Dom::Element.new(
             local_name => "{$<s_tag_name>}"
         );
-
-
+        self._add_attributes( $element, $/ );
         self.start_tag( $element );
         self.parser.context = $element;
         self.parser.stack.push( self.parser.context );
 
-        self._add_attributes( $element, $/ );
+        
     }
 
     multi method e_tag( $/, $w? ) {
@@ -61,7 +60,6 @@ class XML::Parser::Actions::Base {
         my $element = XML::Parser::Dom::Element.new(
             local_name => "{$/<empty_elem_name>}"
         );
-
         self._add_attributes( $element, $/ );
 
         self.start_tag( $element );
@@ -92,8 +90,6 @@ class XML::Parser::Actions::Base {
         $text = $text.subst(/ \s+ $ /, '');
 
         return unless $text;
-
-        $text = $text.subst(/ <[ \x0D \x0A ]>+ $ /, ' ');
 
         self.text( XML::Parser::Dom::Text.new(
             data => $text

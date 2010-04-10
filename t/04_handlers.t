@@ -6,16 +6,13 @@ class Handler
     has Any @.books   is rw;
     has Str $.context is rw;
 
-    method book( @attr )
-    {
-        my %book = category => @attr[0].value;
-        self.books.push( %book );
+    method book( @attr ) {
+        self.books.push( hash( category => @attr ?? @attr[0].value !! 'unknown' ) );
     }
 
     method text( XML::Parser::Dom::Text $text, XML::Parser::Dom::Element $context ) {
         self.books[*-1]{$context.name} = $text.data;
     }
-
 }
 
 my $parser;
