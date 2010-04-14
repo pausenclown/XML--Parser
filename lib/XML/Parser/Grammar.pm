@@ -693,7 +693,8 @@ grammar XML::Parser::Grammar {
         # [73]    EntityDef    ::=    EntityValue | (ExternalID NDataDecl?)
         token entity_def {
                 [
-                        <?before <[ \" \' ]>> #"
+                        #= internal
+                        <?before <[ \" \' ]>>
                         <entity_value>
                         |
                         <?before <[SYSTEM|PUBLIC]>>
@@ -704,7 +705,9 @@ grammar XML::Parser::Grammar {
         }
 
         #"
-
+        token ent_decl_identifier {
+            <?before <[SYSTEM|PUBLIC]>>
+        }
         # [74]    PEDef    ::=    EntityValue | ExternalID
         token pe_def { <entity_value> | <external_id> }
 

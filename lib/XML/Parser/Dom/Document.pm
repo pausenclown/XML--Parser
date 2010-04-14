@@ -22,5 +22,22 @@ is    XML::Parser::Dom::ParentalNode
     method text {
         join('', self.child_nodes>>.text);
     }
-}
 
+    multi method add_doctype ( *%args )
+    {
+        self.add_doctype( XML::Parser::Dom::DocumentType.new( name => %args<name> || %args<root_name> ) );
+    }
+
+    multi method add_doctype ( XML::Parser::Dom::DocumentType $doctype )
+    {
+        given $doctype {
+            self.doctype = $_;
+            .ownerDocument = self;
+            .add_entity( name => 'lt',   definition => '<' );
+            .add_entity( name => 'gt',   definition => '>' );
+            .add_entity( name => 'amp',  definition => '&' );
+            .add_entity( name => 'apos', definition => "'" );
+            .add_entity( name => 'quot', definition => '"' );
+        }
+    }
+}

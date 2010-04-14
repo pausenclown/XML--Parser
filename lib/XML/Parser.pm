@@ -164,11 +164,26 @@ class XML::Parser::Dom::Comment is XML::Parser::Dom::Node {
     }
 }
 
+class XML::Parser::Dom::Entity { ... }
+
 class XML::Parser::Dom::DocumentType {
     has Str $.name  is rw;
     has Str $.descr is rw;
     has Str $.url   is rw;
     has %.entities  is rw;
+
+    has XML::Parser::Dom::Document $.ownerDocument is rw;
+
+    multi method add_entity( *%args )
+    {
+        self.add_entity( XML::Parser::Dom::Entity.new( |%args ) );
+    }
+
+    multi method add_entity( XML::Parser::Dom::Entity $entity )
+    {
+        self.entities{ $entity.name } = $entity;
+        $entity.doctype = self;
+    }
 }
 
 # use XML::Parser::Dom::Doctype;
@@ -195,11 +210,43 @@ is    XML::Parser::Dom::ParentalNode
     method text {
         join('', self.child_nodes>>.text);
     }
-}
 
+    multi method add_doctype ( *%args )
+    {
+        self.add_doctype( XML::Parser::Dom::DocumentType.new( name => %args<name> || %args<root_name> ) );
+    }
+
+    multi method add_doctype ( XML::Parser::Dom::DocumentType $doctype )
+    {
+        given $doctype {
+            self.doctype = $_;
+            .ownerDocument = self;
+            .add_entity( name => 'lt',   definition => '<' );
+            .add_entity( name => 'gt',   definition => '>' );
+            .add_entity( name => 'amp',  definition => '&' );
+            .add_entity( name => 'apos', definition => "'" );
+            .add_entity( name => 'quot', definition => '"' );
+        }
+    }
+}
 class XML::Parser::Dom::Entity {
-}
+    has Str $.name           is rw;
+    has Str $.definition     is rw;
+    has Str $.system_literal is rw;
+    has Str $.pub_id_literal is rw;
+    has Str $.ndata_name     is rw;
 
+    has XML::Parser::Dom::DocumentType $.doctype is rw;
+
+    method parse( Str $def is copy = "{ self.definition }" ) {
+
+        $def = $def.subst( / \& \# ( \d+ ) \; /, -> $m { chr( $m[0].Str ) } );
+        $def = $def.subst( / \& \# x ( <[ 0..9 A..F a..f ]>+ ) \; /, -> $m { chr( :10( '0x' ~ $m[0].Str ) ) } );
+        $def = $def.subst( / \& ( <[ \: A..Z a..z \_ ]> <[ \: A..Z a..z \_ \- \. \d ]>+ ) \; /, -> $m { self.doctype.entities{$m[0]}.definition } );
+
+        $def ~~ /\& <-[ \; ]>+ \;/ ?? self.parse( $def ) !! $def;
+    }
+}
 class XML::Parser::Dom::EntityReference {
 }
 
@@ -281,35 +328,39 @@ class XML::Parser::Actions::Base {
 
     multi method pi( $/, $w? ) {
         self.pi( XML::Parser::Dom::ProcessingInstruction.new(
-            target => "{$<pi_target>}",
-            data   => "{$<pi_data><char>}"
+            target => $<pi_target>.Str,
+            data   => $<pi_data><char>.Str
         ));
     }
 
     multi method comment( $/, $w? ) {
         self.comment( XML::Parser::Dom::Comment.new(
-            data   => "{$<comment_data>}"
+            data   => $<comment_data>.Str
         ));
     }
 
     multi method xml_decl( $/, $w? ) {
         self.xml_declaration(XML::Parser::Dom::XmlDeclaration.new(
-            version    => "{$<version_info><version_num>}",
-            encoding   => $<encoding_decl> ?? "{$<encoding_decl>[0]<encoding_decl_value><enc_name>}" !! 'UTF-32',
-            standalone => $<sd_decl>       ?? "{$<sd_decl>[0]<sd_decl_value><sd_value>}"             !! 'yes'
+            version    => $<version_info><version_num>.Str,
+            encoding   => $<encoding_decl> ?? $<encoding_decl>[0]<encoding_decl_value><enc_name>.Str !! 'UTF-32',
+            standalone => $<sd_decl>       ?? $<sd_decl>[0]<sd_decl_value><sd_value>.Str             !! 'yes'
         ));
     }
 
     multi method s_tag( $/, $w? ) {
         my $element = XML::Parser::Dom::Element.new(
-            local_name => "{$<s_tag_name>}"
+            local_name => $<s_tag_name>.Str
         );
+
+        die "!Document Type name doesn't match root element."
+            if !self.parser.stack && self.parser.document.doctype && self.parser.document.doctype.name ne $element.local_name;
+
         self._add_attributes( $element, $/ );
         self.start_tag( $element );
         self.parser.context = $element;
         self.parser.stack.push( self.parser.context );
 
-        
+
     }
 
     multi method e_tag( $/, $w? ) {
@@ -317,13 +368,13 @@ class XML::Parser::Actions::Base {
         self.parser.context = self.parser.stack.elems ?? self.parser.stack[*-1] !! self.parser.document;
 
         self.end_tag( XML::Parser::Dom::Element.new(
-            local_name => "{$<name>}"
+            local_name => $<name>.Str
         ));
     }
 
     method empty_elem_tag( $/, $w? ) {
         my $element = XML::Parser::Dom::Element.new(
-            local_name => "{$/<empty_elem_name>}"
+            local_name => $/<empty_elem_name>.Str
         );
         self._add_attributes( $element, $/ );
 
@@ -337,9 +388,9 @@ class XML::Parser::Actions::Base {
             for  $match<attributes>[0] -> $a
             {
                 $element.add_attribute(
-                    "{$a<attribute><att_name>[0]}",
-                    $a<attribute><att_value><att_value_dq> ?? "{$a<attribute><att_value><att_value_dq><att_value_dv>}" !!
-                    $a<attribute><att_value><att_value_sq> ?? "{$a<attribute><att_value><att_value_sq><att_value_sv>}" !!
+                    $a<attribute><att_name>[0].Str,
+                    $a<attribute><att_value><att_value_dq> ?? $a<attribute><att_value><att_value_dq><att_value_dv>.Str !!
+                    $a<attribute><att_value><att_value_sq> ?? $a<attribute><att_value><att_value_sq><att_value_sv>.Str !!
                     die "Wow, that came unexpected! Ask your deity for assistance."
                 );
             }
@@ -371,6 +422,36 @@ class XML::Parser::Actions::Base {
         self.end_cdata( XML::Parser::Dom::CData.new(
             data => "{$<c_data>}"
         ));
+    }
+
+    multi method doctype_decl_name( $/, $w? )
+    {
+        # self.parser.document.doctype = XML::Parser::Dom::DocumentType.new( name => $/.Str );
+        self.parser.document.add_doctype( name => $/.Str );
+    }
+
+    multi method ge_decl ( $/, $w? )
+    {
+        given $<entity_def>
+        {
+            if $_<entity_value> {
+                self.parser.document.doctype.add_entity(
+                    name       => $<ge_decl_name>.Str,
+                    definition => $_<entity_value><entity_value_dq> ?? $_<entity_value><entity_value_dq><entity_value_dv>.Str !!
+                                  $_<entity_value><entity_value_sq> ?? $_<entity_value><entity_value_sq><entity_value_sv>.Str !!
+                                  die "I am your father, Luke."
+                );
+            }
+
+            if $_<external_id> {
+                self.parser.document.doctype.add_entity(
+                    name           => $_<ge_decl_name>.Str,
+                    system_literal => $_<external_id><system_literal>.Str,
+                    pub_id_literal => $_<pub_id_literal> ?? $_<external_id><pub_id_literal>.Str !! '',
+                    ndata_name     => $_<ndata_decl>     ?? $_<ndata_decl><name>.Str            !! ''
+                );
+            }
+        }
     }
 
     # =head2 notation_declaration ( XML::Parser::Dom::NotationDeclaraion $decl )
@@ -1325,7 +1406,8 @@ grammar XML::Parser::Grammar {
         # [73]    EntityDef    ::=    EntityValue | (ExternalID NDataDecl?)
         token entity_def {
                 [
-                        <?before <[ \" \' ]>> #"
+                        #= internal
+                        <?before <[ \" \' ]>>
                         <entity_value>
                         |
                         <?before <[SYSTEM|PUBLIC]>>
@@ -1336,7 +1418,9 @@ grammar XML::Parser::Grammar {
         }
 
         #"
-
+        token ent_decl_identifier {
+            <?before <[SYSTEM|PUBLIC]>>
+        }
         # [74]    PEDef    ::=    EntityValue | ExternalID
         token pe_def { <entity_value> | <external_id> }
 
@@ -1395,22 +1479,23 @@ class XML::Parser {
 
     has Any                        @.stack is rw;
 
-    method new_action (Str $action, Any $action_arg ) {
-        given $action {
-                when 'dom'      { self.action = XML::Parser::Actions::Dom.new( parser=>self ) }
-                when 'test'     { self.action = XML::Parser::Actions::Test.new( parser=>self ) }
-                when 'debug'    { self.action = XML::Parser::Actions::Debug.new( parser=>self ) }
-                when 'handlers' { self.action = XML::Parser::Actions::Handlers.new( parser=>self ) }
-        }
-        return self.action || die "Unknown XML::Parser::Action";
+    multi method parse (Str $xml, Str $action, Any $action_arg?)
+    {
+        self.parse( $xml, do given $action {
+                when 'dom'      { XML::Parser::Actions::Dom.new( parser=>self ) }
+                when 'test'     { XML::Parser::Actions::Test.new( parser=>self ) }
+                when 'debug'    { XML::Parser::Actions::Debug.new( parser=>self ) }
+                when 'handlers' { XML::Parser::Actions::Handlers.new( parser=>self ) }
+                default         { die "Unknown XML::Parser::Action" }
+        } );
     }
 
-    method parse (Str $xml, Str $action = 'dom', Any $action_arg?)
+    multi method parse (Str $xml, XML::Parser::Actions::Base   $actions)
     {
         my $parse;
 
         try {
-                $parse = XML::Parser::Grammar.parse( $xml, actions => self.new_action( $action, $action_arg ) );
+                $parse = XML::Parser::Grammar.parse( $xml, actions => $actions );
         }
 
         my $error   = $! ?? "$!" !! "";
@@ -1420,7 +1505,9 @@ class XML::Parser {
         {
             $handled = $error.substr(0,1) eq '!';
 
-            # $error   = $error.subst('<candidate>', self.action.lastCandidate);
+            $error   = $error.subst('<candidate>', self.action.lastCandidate)
+                if self.action.can('lastCandidate');
+
             $error   = $error.subst(/^\!/, '');
 
             die $error

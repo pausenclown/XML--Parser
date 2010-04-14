@@ -9,7 +9,7 @@ XML::Parser - A Perl 6 module for parsing XML documents
   my $parser;
 
   my $xml = '<foo bar="tron">FTFY</foo>';
-   
+
   # only parses and checks for wellformedness, also base class for all other
   # parsing types. parsefile returns the match object (parse tree) of the used grammar.
 
@@ -28,8 +28,8 @@ XML::Parser - A Perl 6 module for parsing XML documents
   $parser = XML::Parser.new( style => 'simple' )
   my $st = $parser->parse( $xml )
 
-	say $st<foo>;
-	say $st<foo><name>;
+  say $st<foo>;
+  say $st<foo><name>;
 
   # creates an object tree of the document
   # which parse returns

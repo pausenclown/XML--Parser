@@ -11,7 +11,9 @@ class Handler
     }
 
     method text( XML::Parser::Dom::Text $text, XML::Parser::Dom::Element $context ) {
-        self.books[*-1]{$context.name} = $text.data;
+        given self.books[*-1] {
+            .{$context.name} //= []; .{$context.name}.push( $text.data )
+        }
     }
 }
 
@@ -37,6 +39,7 @@ my $t = '<!-- from http://www.w3schools.com/dom/books.xml -->
 <book category="web">
 <title lang="en">XQuery Kick Start</title>
 <author>James McGovern</author>
+<author>Don Johnson</author>
 <year>2003</year>
 <price>49.99</price>
 </book>
@@ -53,5 +56,5 @@ $parser.parse( $t, 'handlers' );
 ok( $handlers.books.elems == 4, 'books' );
 ok( $handlers.books[0]<category> eq 'cooking', 'category' );
 ok( $handlers.books[1]<title>    eq 'Harry Potter', 'title' );
-ok( $handlers.books[2]<author>   eq 'James McGovern', 'author' );
+ok( any($handlers.books[2]<author>, 'James McGovern'), 'author' );
 ok( $handlers.books[3]<price>    eq '39.95', 'price' );
