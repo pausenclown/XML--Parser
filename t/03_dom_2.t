@@ -76,4 +76,3 @@ ok( $parser.document.doctype.entities<myamp>.parse      eq '&' );
 
 ok( $parser.document.doctype.entities<copyright>.parse eq $parser.document.doctype.entities<copyright2>.parse );
 ok( $parser.document.doctype.entities<copyright08>.parse eq '© 2008' );
-say $parser.document.doctype.entities<copyright08>.parse;
