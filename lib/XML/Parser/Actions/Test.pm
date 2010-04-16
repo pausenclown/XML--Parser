@@ -2,6 +2,9 @@ class XML::Parser::Actions::Test
 is    XML::Parser::Actions::Base
 {
 
+    multi method document_start( XML::Parser::Dom::Document $d ) {
+    }
+
     multi method pi( XML::Parser::Dom::ProcessingInstruction $pi ) {
         say $pi.xml;
     }

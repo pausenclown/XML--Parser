@@ -12,8 +12,7 @@ is    XML::Parser::Dom::ParentalNode
     method version    { self.xml_decl.version }
     method encoding   { self.xml_decl.encoding }
     method standalone { self.xml_decl.standalone }
-    # FIXME
-    method root       { self.first_child }
+    method root       { self.child_nodes.first({ $_.isa( XML::Parser::Dom::Element ) }) }
 
     method xml {
         self.xml_decl.xml ~ "\n" ~ join('', self.child_nodes>>.xml);

@@ -1,4 +1,6 @@
-class XML::Parser::Actions::Debug {
+class XML::Parser::Actions::Debug
+is    XML::Parser::Actions
+{
         has Any $.lastMatch is rw;
         has Str $.lastToken is rw;
         has Str $.lastCandidate is rw = 'DOCUMENT';

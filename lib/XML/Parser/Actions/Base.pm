@@ -1,6 +1,6 @@
 class XML::Parser { ... }
 
-class XML::Parser::Actions::Base {
+class XML::Parser::Actions::Base is XML::Parser::Actions {
 
     has XML::Parser $.parser;
     has Str         $.lastCandidate is rw = 'DOCUMENT';
@@ -36,14 +36,17 @@ class XML::Parser::Actions::Base {
     }
 
     multi method s_tag( $/, $w? ) {
+        my $match = $/;
+        my ($name, $prefix) = $/<s_tag_name>.Str.split(':').reverse; $prefix //= ''; #/
+
         my $element = XML::Parser::Dom::Element.new(
-            local_name => $<s_tag_name>.Str
+            local_name => $name, prefix => $prefix
         );
 
         die "!Document Type name doesn't match root element."
-            if !self.parser.stack && self.parser.document.doctype && self.parser.document.doctype.name ne $element.local_name;
+            if !self.parser.stack && self.parser.document && self.parser.document.doctype && self.parser.document.doctype.name ne $element.local_name;
 
-        self._add_attributes( $element, $/ );
+        self._add_attributes( $element, $match );
         self.start_tag( $element );
         self.parser.context = $element;
         self.parser.stack.push( self.parser.context );
@@ -53,18 +56,31 @@ class XML::Parser::Actions::Base {
 
     multi method e_tag( $/, $w? ) {
         self.parser.stack.pop;
+
+        if self.parser.context.child_nodes.elems && self.parser.context.child_nodes[*-1].isa(XML::Parser::Dom::Text) {
+            given self.parser.context.child_nodes[*-1] {
+                .data = .data.subst(/^ \s+ /, '').subst(/\s+ $ /, '');
+            }
+        }
+
         self.parser.context = self.parser.stack.elems ?? self.parser.stack[*-1] !! self.parser.document;
 
+        my ($name, $prefix) = $/<s_tag_name>.Str.split(':').reverse; $prefix //= ''; #/
+
         self.end_tag( XML::Parser::Dom::Element.new(
-            local_name => $<name>.Str
-        ));
+            local_name => $name, prefix => $prefix
+        ) );
     }
 
     method empty_elem_tag( $/, $w? ) {
+        my $match  = $/;
+        my ($name, $prefix) = $/<empty_elem_name>.Str.split(':').reverse; $prefix //= ''; #/
+
         my $element = XML::Parser::Dom::Element.new(
-            local_name => $/<empty_elem_name>.Str
+            local_name => $name, prefix => $prefix
         );
-        self._add_attributes( $element, $/ );
+
+        self._add_attributes( $element, $match );
 
         self.start_tag( $element );
         self.end_tag( $element );
@@ -89,11 +105,10 @@ class XML::Parser::Actions::Base {
     {
         my $text = "$/";
 
-        # FIXME
-        $text = $text.subst(/ ^ \s+ /, '');
-        $text = $text.subst(/ \s+ $ /, '');
+        $text = $text.subst(/ ^ \s+ /, ' ');
+        $text = $text.subst(/ \s+ $ /, ' ');
 
-        return unless $text;
+        return if $text ~~ / ^ \s* $/;
 
         self.text( XML::Parser::Dom::Text.new(
             data => $text
@@ -140,6 +155,13 @@ class XML::Parser::Actions::Base {
                 );
             }
         }
+    }
+
+    multi method entity_ref ( $/, $w? ) {
+        say "ER $/";
+        self.parser.document.doctype.entities{ $<name>.Str } ??
+            self.text( XML::Parser::Dom::Text.new( data => self.parser.document.doctype.entities{ $<name>.Str }.parse )) !!
+            die 'Unknown Entity name in Entity-Reference.';
     }
 
     # =head2 notation_declaration ( XML::Parser::Dom::NotationDeclaraion $decl )

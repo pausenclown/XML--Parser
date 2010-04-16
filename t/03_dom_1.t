@@ -39,7 +39,7 @@ isa_ok( $parser.document.root.owner_document, XML::Parser::Dom::Document );
 isa_ok( $parser.document.root.child_nodes[0], XML::Parser::Dom::Element );
 isa_ok( $parser.document.root.child_nodes[1].first_child, XML::Parser::Dom::ProcessingInstruction );
 ok( $parser.document.root.child_nodes[1].first_child.target eq 'eclipse', 'pi target' );
-ok( $parser.document.root.child_nodes[1].first_child.path eq '/root/tag_with_pi/#processing_instruction', 'path ok');
+ok( $parser.document.root.child_nodes[1].first_child.path eq '/root/tag_with_pi/#processing_instruction:eclipse', 'path ok');
 ok( $parser.document.root.child_nodes[1].first_child.data eq 'foox', 'pi data' );
 
 ok( $parser.document.root.child_nodes[2].name eq 'nested_tag', 'found nested_tag' );
@@ -48,7 +48,7 @@ ok( $parser.document.root.child_nodes[2].next_sibling.name eq 'tag_with_text', '
 ok( $parser.document.root.child_nodes[3].node_type eq 'Element', "node type element" );
 ok( $parser.document.root.child_nodes[3].first_child.node_type eq 'Text', "node type text" );
 ok( $parser.document.root.child_nodes[3].first_child.data eq 'some bla', "text content" );
-ok( $parser.document.text eq 'some bla More Text', "text content" );
+ok( $parser.document.text eq 'some bla More Text', "text content 2" );
 ok( $parser.document.root.child_nodes[4].node_type eq 'Element', "node type element" );
 ok( $parser.document.root.child_nodes[4].name eq 'tag_with_attr', "node name tag_with_attr" );
 ok( $parser.document.root.child_nodes[4].attributes.elems == 2, "no. of attr" );

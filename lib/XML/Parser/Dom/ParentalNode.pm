@@ -1,9 +1,18 @@
+class XML::Parser::Dom::Text { ... }
+
 class XML::Parser::Dom::ParentalNode
 is    XML::Parser::Dom::Node
 {
 
     method add_node( XML::Parser::Dom::Node $n ) {
         self.set_node_kin( $n );
+
+        if $n.isa( XML::Parser::Dom::Text ) && self.child_nodes && self.child_nodes[*-1].isa( XML::Parser::Dom::Text )
+        {
+            self.child_nodes[*-1].data ~= $n.data;
+            return;
+        }
+
         self.child_nodes.push( $n );
     }
 

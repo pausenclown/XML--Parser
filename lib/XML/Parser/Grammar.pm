@@ -110,9 +110,9 @@ grammar XML::Parser::Grammar {
 
         # [9]     EntityValue    ::=    '"' ([^%&"] | PEReference | Reference)* '"'  |  "'" ([^%&'] | PEReference | Reference)* "'"
         token entity_value_dv { [
-                [ <-[ \% \& \" ]> | <pe_reference>  | <reference> ]*
+                [ <-[ \% \& \" ]> | <pe_reference_unparsed>  | <reference_unparsed> ]*
         ] }
-        token entity_value_sv { [ <-[ \% \& \' ]> | <pe_reference>  | <reference>  ]*   }
+        token entity_value_sv { [ <-[ \% \& \' ]> | <pe_reference_unparsed>  | <reference_unparsed>  ]*   }
         token entity_value_sq { \' <entity_value_sv> \' } #'
         token entity_value_dq { \" <entity_value_dv> \" } #"
         token entity_value    { [ <entity_value_sq> | <entity_value_dq> ] }
@@ -120,8 +120,6 @@ grammar XML::Parser::Grammar {
         # [10]    AttValue     ::=    '"' ([^<&"] | Reference)* '"' |  "'" ([^<&'] | Reference)* "'"
         token att_value_dv {
                 [
-                        <reference>
-                        |
                         [
                                 [
                                         [
@@ -138,8 +136,6 @@ grammar XML::Parser::Grammar {
 
         token att_value_sv {
                 [
-                        <reference>
-                        |
                         [
                                 [
                                         [
@@ -614,6 +610,10 @@ grammar XML::Parser::Grammar {
                 [ <entity_ref> | <char_ref> ]
         }
 
+        token reference_unparsed {
+                [ <entity_ref> | <char_ref> ]
+        }
+
         # [68]    EntityRef    ::=    '&' Name ';'
         token entity_ref {
 
@@ -635,6 +635,11 @@ grammar XML::Parser::Grammar {
 
         # [69]    PEReference    ::=    '%' Name ';'  [VC: Entity Declared]
         token pe_reference {
+                <wts>*
+                \%
+                <name> \; }
+
+        token pe_reference_unparsed {
                 <wts>*
                 \%
                 <name> \; }

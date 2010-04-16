@@ -18,6 +18,7 @@ my @bootstrap = (
     'lib/XML/Parser/Dom/EntityReference.pm',
     'lib/XML/Parser/Dom/ProcessingInstruction.pm',
     'lib/XML/Parser/Dom/Element.pm',
+    'lib/XML/Parser/Actions.pm',
     'lib/XML/Parser/Actions/Base.pm',
     'lib/XML/Parser/Actions/Test.pm',
     'lib/XML/Parser/Actions/Debug.pm',

@@ -5,11 +5,12 @@ my $parser;
 lives_ok( { $parser = XML::Parser.new }, 'instance' );
 my $t = '<!-- from http://www.w3schools.com/dom/books.xml -->
 <!DOCTYPE bookstore [
-    <!ENTITY gdl "Giada De Laurentiis">
+    <!ENTITY myamp "&amp;">
     <!ENTITY copyright "&#169;">
     <!ENTITY copyright2 "&#xA9;">
-    <!ENTITY myamp "&amp;">
     <!ENTITY copyright08 "&copyright; 2008">
+    <!ENTITY gdl "Giada De Laurentiis">
+    <!ENTITY cooking "cooking">
 ]>
 <bookstore>
 <book category="cooking">
@@ -76,3 +77,6 @@ ok( $parser.document.doctype.entities<myamp>.parse      eq '&' );
 
 ok( $parser.document.doctype.entities<copyright>.parse eq $parser.document.doctype.entities<copyright2>.parse );
 ok( $parser.document.doctype.entities<copyright08>.parse eq '© 2008' );
+
+ok( $parser.document.root.child_nodes[1].child_nodes[1].text eq '© J K. Rowling' );
+say $parser.document.root.xml;

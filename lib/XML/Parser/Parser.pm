@@ -17,13 +17,12 @@ class XML::Parser {
         } );
     }
 
-    multi method parse (Str $xml, XML::Parser::Actions::Base   $actions)
+    multi method parse (Str $xml, XML::Parser::Actions $actions)
     {
         my $parse;
-
-        try {
+        # try {
                 $parse = XML::Parser::Grammar.parse( $xml, actions => $actions );
-        }
+        # }
 
         my $error   = $! ?? "$!" !! "";
         my $handled = '';
@@ -38,7 +37,7 @@ class XML::Parser {
             $error   = $error.subst(/^\!/, '');
 
             die $error
-                    if $handled;
+                if $handled;
 
             die "Syntax error in  ( $! )"; # { self.action.lastCandidate }
         }

@@ -1,0 +1,5 @@
+class XML::Parser::Actions {
+};
+
+
+

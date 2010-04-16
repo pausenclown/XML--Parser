@@ -1,6 +1,12 @@
 class XML::Parser::Namespace {
     has Str $.name is rw = "";
     has Str $.uri  is rw = "";
+
+    method xml {
+        self.name                          ??
+        "xmlns:{self.name}=\"{self.uri}\"" !!
+        "xmlns=\"{self.uri}\""             ;
+    }
 }
 
 class XML::Parser::Dom::XmlDeclaration {
@@ -13,12 +19,27 @@ class XML::Parser::Dom::XmlDeclaration {
     }
 }
 
-class XML::Parser::Dom::Attribute {
-    has Str $.name is rw;
-    has Str $.value is rw;
+class XML::Parser::Dom::Element { ... }
+
+class XML::Parser::Dom::Attribute
+{
+    has Str                       $.name              is rw;
+    has Str                       $.value             is rw;
+    has Str                       $.prefix            is rw;
+    has XML::Parser::Dom::Element $.container_element is rw;
+
+    method full_name {
+        ( self.prefix ?? "{self.prefix}:" !! "" ) ~
+        self.name
+    }
 
     method xml {
-        "{self.name}=\"{self.value}\""
+        "{self.full_name}=\"{self.value}\""
+    }
+
+    method namespace {
+        return if self.prefix eq '';
+        self.container_element.namespaces{ self.prefix };
     }
 }
 
@@ -56,18 +77,8 @@ class XML::Parser::Dom::Node {
         "{self.WHAT}".subst(/XML \:\: Parser \:\: Dom \:\: /, '').subst(/ \( \) $ /, '');
     }
 
-    # namespace    Returns the namespace of a node
-    has XML::Parser::Namespace $.namespace is rw;
-
-    # namespaceURI Returns the namespace URI of a node
-    method namespace_uri {
-        self.namespace.uri;
-    }
-
     # prefix  Returns the namespace prefix of a node
-    method prefix {
-        self.namespace ?? self.namespace.name !! '';
-    }
+    has Str $.prefix is rw = '';
 
     # childNodes  Returns the child nodes for a node
     has XML::Parser::Dom::Node      @.child_nodes;
@@ -111,12 +122,21 @@ class XML::Parser::Dom::Node {
     }
 }
 
+class XML::Parser::Dom::Text { ... }
+
 class XML::Parser::Dom::ParentalNode
 is    XML::Parser::Dom::Node
 {
 
     method add_node( XML::Parser::Dom::Node $n ) {
         self.set_node_kin( $n );
+
+        if $n.isa( XML::Parser::Dom::Text ) && self.child_nodes && self.child_nodes[*-1].isa( XML::Parser::Dom::Text )
+        {
+            self.child_nodes[*-1].data ~= $n.data;
+            return;
+        }
+
         self.child_nodes.push( $n );
     }
 
@@ -200,8 +220,7 @@ is    XML::Parser::Dom::ParentalNode
     method version    { self.xml_decl.version }
     method encoding   { self.xml_decl.encoding }
     method standalone { self.xml_decl.standalone }
-    # FIXME
-    method root       { self.first_child }
+    method root       { self.child_nodes.first({ $_.isa( XML::Parser::Dom::Element ) }) }
 
     method xml {
         self.xml_decl.xml ~ "\n" ~ join('', self.child_nodes>>.xml);
@@ -241,9 +260,14 @@ class XML::Parser::Dom::Entity {
     method parse( Str $def is copy = "{ self.definition }" ) {
         my $again;
 
-        $def = $def.subst( / \& \# ( \d+ ) \; /, -> $m { chr( $m[0].Str ) } );
-        $def = $def.subst( / \& \# x ( <[ 0..9 A..F a..f ]>+ ) \; /, -> $m { chr( :10( '0x' ~ $m[0].Str ) ) } );
-        $def = $def.subst( / \& ( <[ \: A..Z a..z \_ ]> <[ \: A..Z a..z \_ \- \. \d ]>+ ) \; /, -> $m { $again = 1; self.doctype.entities{$m[0]}.definition } );
+        $def = $def.subst( / \& \# ( \d+ ) \; /,
+            -> $m { chr( $m[0].Str ) } );
+
+        $def = $def.subst( / \& \# x ( <[ 0..9 A..F a..f ]>+ ) \; /,
+            -> $m { chr( :10( '0x' ~ $m[0].Str ) ) } );
+
+        $def = $def.subst( / \& ( <[ \: A..Z a..z \_ ]> <[ \: A..Z a..z \_ \- \. \d ]>+ ) \; /,
+            -> $m { $again = 1; self.doctype.entities{$m[0]}.definition } );
 
         $again ?? self.parse( $def ) !! $def;
     }
@@ -261,6 +285,10 @@ is    XML::Parser::Dom::Node
     method xml {
         "<?{self.target} {self.data}?>";
     }
+
+    method path {
+        join( '/', self.parent_node.path, "#processing_instruction:{self.target}" );
+    }
 }
 
 
@@ -269,16 +297,22 @@ class XML::Parser::Dom::Element
 is    XML::Parser::Dom::ParentalNode
 {
     has XML::Parser::Dom::Attribute @.attributes;
+    has XML::Parser::Namespace %._namespaces;
+
+    # namespaceURI Returns the namespace URI of a node
+#     method namespace_uri {
+#         self.namespace.uri;
+#     }
 
     method xml
     {
         if !self.child_nodes.elems
         {
-            "<{self.name}{self.attribute_xml} />";
+            "<{self.full_name}{self.attribute_xml} />";
         }
         else
         {
-            "<{self.name}{self.attribute_xml}>{self.children_xml}</{self.name}>";
+            "<{self.full_name}{self.attribute_xml}{self.namespace_xml}>{self.children_xml}</{self.full_name}>";
         }
     }
 
@@ -287,7 +321,7 @@ is    XML::Parser::Dom::ParentalNode
     }
 
     method attribute_xml {
-        given join( ' ', self.attributes>>.xml ) {
+given join( ' ', self.attributes>>.xml ) {
             ' ' ~ $_ if $_;
         }
     }
@@ -296,24 +330,54 @@ is    XML::Parser::Dom::ParentalNode
         join( '', self.child_nodes>>.xml );
     }
 
+    method namespace_xml {
+        given join( ' ', self._namespaces.values>>.xml ) {
+            ' ' ~ $_ if $_;
+        }
+    }
+
     multi method add_attribute( $name, $value )
     {
-        # say "add_attribute ", self.name, '-', $name, '+', $value, '!', $name.WHAT, '+', $value.WHAT;
-        self.attributes.push( XML::Parser::Dom::Attribute.new( name  => $name, value => $value ) );
-        # say "<add_attribute ";
+        # found a namespace
+        if $name ~~ / ^ [ xmlns | xmlns \: ( .+ ) ] $ /
+        {
+            my $namespace = $0 // ''; #/
+            self._namespaces{ $namespace } = XML::Parser::Namespace.new( name => $namespace, uri => $value );
+        }
+        else
+        {
+            ( $name, my $prefix ) = $name.split(':').reverse; $prefix //= ''; #/
+
+            self.attributes.push( XML::Parser::Dom::Attribute.new( name  => $name, value => $value, prefix => $prefix, container_element => self  ) );
+        }
     }
 
     multi method add_attribute( XML::Parser::Dom::Attribute $a )
     {
         self.attributes.push( $a );
     }
+
+     method namespaces {
+         my %namespaces = self.parent_node && self.parent_node.isa( XML::Parser::Dom::Element ) ?? self.parent_node.namespaces !! hash;
+         for %._namespaces.kv -> $name, $namespace {
+             %namespaces{ $name } = $namespace;
+         }
+         %namespaces;
+     };
+
+    method namespace {
+        self.namespaces{ self.prefix };
+    }
 }
+
+class XML::Parser::Actions {
+};
 
 
 
 class XML::Parser { ... }
 
-class XML::Parser::Actions::Base {
+class XML::Parser::Actions::Base is XML::Parser::Actions {
 
     has XML::Parser $.parser;
     has Str         $.lastCandidate is rw = 'DOCUMENT';
@@ -349,14 +413,17 @@ class XML::Parser::Actions::Base {
     }
 
     multi method s_tag( $/, $w? ) {
+        my $match = $/;
+        my ($name, $prefix) = $/<s_tag_name>.Str.split(':').reverse; $prefix //= ''; #/
+
         my $element = XML::Parser::Dom::Element.new(
-            local_name => $<s_tag_name>.Str
+            local_name => $name, prefix => $prefix
         );
 
         die "!Document Type name doesn't match root element."
-            if !self.parser.stack && self.parser.document.doctype && self.parser.document.doctype.name ne $element.local_name;
+            if !self.parser.stack && self.parser.document && self.parser.document.doctype && self.parser.document.doctype.name ne $element.local_name;
 
-        self._add_attributes( $element, $/ );
+        self._add_attributes( $element, $match );
         self.start_tag( $element );
         self.parser.context = $element;
         self.parser.stack.push( self.parser.context );
@@ -366,18 +433,31 @@ class XML::Parser::Actions::Base {
 
     multi method e_tag( $/, $w? ) {
         self.parser.stack.pop;
+
+        if self.parser.context.child_nodes.elems && self.parser.context.child_nodes[*-1].isa(XML::Parser::Dom::Text) {
+            given self.parser.context.child_nodes[*-1] {
+                .data = .data.subst(/^ \s+ /, '').subst(/\s+ $ /, '');
+            }
+        }
+
         self.parser.context = self.parser.stack.elems ?? self.parser.stack[*-1] !! self.parser.document;
 
+        my ($name, $prefix) = $/<s_tag_name>.Str.split(':').reverse; $prefix //= ''; #/
+
         self.end_tag( XML::Parser::Dom::Element.new(
-            local_name => $<name>.Str
-        ));
+            local_name => $name, prefix => $prefix
+        ) );
     }
 
     method empty_elem_tag( $/, $w? ) {
+        my $match  = $/;
+        my ($name, $prefix) = $/<empty_elem_name>.Str.split(':').reverse; $prefix //= ''; #/
+
         my $element = XML::Parser::Dom::Element.new(
-            local_name => $/<empty_elem_name>.Str
+            local_name => $name, prefix => $prefix
         );
-        self._add_attributes( $element, $/ );
+
+        self._add_attributes( $element, $match );
 
         self.start_tag( $element );
         self.end_tag( $element );
@@ -402,11 +482,10 @@ class XML::Parser::Actions::Base {
     {
         my $text = "$/";
 
-        # FIXME
-        $text = $text.subst(/ ^ \s+ /, '');
-        $text = $text.subst(/ \s+ $ /, '');
+        $text = $text.subst(/ ^ \s+ /, ' ');
+        $text = $text.subst(/ \s+ $ /, ' ');
 
-        return unless $text;
+        return if $text ~~ / ^ \s* $/;
 
         self.text( XML::Parser::Dom::Text.new(
             data => $text
@@ -455,6 +534,13 @@ class XML::Parser::Actions::Base {
         }
     }
 
+    multi method entity_ref ( $/, $w? ) {
+        say "ER $/";
+        self.parser.document.doctype.entities{ $<name>.Str } ??
+            self.text( XML::Parser::Dom::Text.new( data => self.parser.document.doctype.entities{ $<name>.Str }.parse )) !!
+            die 'Unknown Entity name in Entity-Reference.';
+    }
+
     # =head2 notation_declaration ( XML::Parser::Dom::NotationDeclaraion $decl )
     # =head2 external_entity ( XML::Parser::Dom::ExternalEntity $ent )
     # =head2 entity_declaration ( XML::Parser::Dom::EntityDeclaration $decl )
@@ -481,6 +567,9 @@ class XML::Parser::Actions::Test
 is    XML::Parser::Actions::Base
 {
 
+    multi method document_start( XML::Parser::Dom::Document $d ) {
+    }
+
     multi method pi( XML::Parser::Dom::ProcessingInstruction $pi ) {
         say $pi.xml;
     }
@@ -496,7 +585,9 @@ is    XML::Parser::Actions::Base
 }
 
 
-class XML::Parser::Actions::Debug {
+class XML::Parser::Actions::Debug
+is    XML::Parser::Actions
+{
         has Any $.lastMatch is rw;
         has Str $.lastToken is rw;
         has Str $.lastCandidate is rw = 'DOCUMENT';
@@ -702,6 +793,7 @@ is    XML::Parser::Actions::Base
     }
 
     multi method end_tag( XML::Parser::Dom::Element $t ) {
+
     }
 
     multi method comment( XML::Parser::Dom::Comment $c ) {
@@ -824,9 +916,9 @@ grammar XML::Parser::Grammar {
 
         # [9]     EntityValue    ::=    '"' ([^%&"] | PEReference | Reference)* '"'  |  "'" ([^%&'] | PEReference | Reference)* "'"
         token entity_value_dv { [
-                [ <-[ \% \& \" ]> | <pe_reference>  | <reference> ]*
+                [ <-[ \% \& \" ]> | <pe_reference_unparsed>  | <reference_unparsed> ]*
         ] }
-        token entity_value_sv { [ <-[ \% \& \' ]> | <pe_reference>  | <reference>  ]*   }
+        token entity_value_sv { [ <-[ \% \& \' ]> | <pe_reference_unparsed>  | <reference_unparsed>  ]*   }
         token entity_value_sq { \' <entity_value_sv> \' } #'
         token entity_value_dq { \" <entity_value_dv> \" } #"
         token entity_value    { [ <entity_value_sq> | <entity_value_dq> ] }
@@ -834,8 +926,6 @@ grammar XML::Parser::Grammar {
         # [10]    AttValue     ::=    '"' ([^<&"] | Reference)* '"' |  "'" ([^<&'] | Reference)* "'"
         token att_value_dv {
                 [
-                        <reference>
-                        |
                         [
                                 [
                                         [
@@ -852,8 +942,6 @@ grammar XML::Parser::Grammar {
 
         token att_value_sv {
                 [
-                        <reference>
-                        |
                         [
                                 [
                                         [
@@ -1328,6 +1416,10 @@ grammar XML::Parser::Grammar {
                 [ <entity_ref> | <char_ref> ]
         }
 
+        token reference_unparsed {
+                [ <entity_ref> | <char_ref> ]
+        }
+
         # [68]    EntityRef    ::=    '&' Name ';'
         token entity_ref {
 
@@ -1349,6 +1441,11 @@ grammar XML::Parser::Grammar {
 
         # [69]    PEReference    ::=    '%' Name ';'  [VC: Entity Declared]
         token pe_reference {
+                <wts>*
+                \%
+                <name> \; }
+
+        token pe_reference_unparsed {
                 <wts>*
                 \%
                 <name> \; }
@@ -1491,13 +1588,12 @@ class XML::Parser {
         } );
     }
 
-    multi method parse (Str $xml, XML::Parser::Actions::Base   $actions)
+    multi method parse (Str $xml, XML::Parser::Actions $actions)
     {
         my $parse;
-
-        try {
+        # try {
                 $parse = XML::Parser::Grammar.parse( $xml, actions => $actions );
-        }
+        # }
 
         my $error   = $! ?? "$!" !! "";
         my $handled = '';
@@ -1512,7 +1608,7 @@ class XML::Parser {
             $error   = $error.subst(/^\!/, '');
 
             die $error
-                    if $handled;
+                if $handled;
 
             die "Syntax error in  ( $! )"; # { self.action.lastCandidate }
         }

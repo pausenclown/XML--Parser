@@ -30,6 +30,7 @@ is    XML::Parser::Actions::Base
     }
 
     multi method end_tag( XML::Parser::Dom::Element $t ) {
+
     }
 
     multi method comment( XML::Parser::Dom::Comment $c ) {

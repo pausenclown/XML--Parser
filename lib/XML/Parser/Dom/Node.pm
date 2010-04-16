@@ -32,18 +32,8 @@ class XML::Parser::Dom::Node {
         "{self.WHAT}".subst(/XML \:\: Parser \:\: Dom \:\: /, '').subst(/ \( \) $ /, '');
     }
 
-    # namespace    Returns the namespace of a node
-    has XML::Parser::Namespace $.namespace is rw;
-
-    # namespaceURI Returns the namespace URI of a node
-    method namespace_uri {
-        self.namespace.uri;
-    }
-
     # prefix  Returns the namespace prefix of a node
-    method prefix {
-        self.namespace ?? self.namespace.name !! '';
-    }
+    has Str $.prefix is rw = '';
 
     # childNodes  Returns the child nodes for a node
     has XML::Parser::Dom::Node      @.child_nodes;

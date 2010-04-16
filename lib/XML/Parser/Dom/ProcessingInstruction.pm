@@ -7,6 +7,10 @@ is    XML::Parser::Dom::Node
     method xml {
         "<?{self.target} {self.data}?>";
     }
+
+    method path {
+        join( '/', self.parent_node.path, "#processing_instruction:{self.target}" );
+    }
 }
 
 
