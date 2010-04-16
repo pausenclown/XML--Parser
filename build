@@ -38,4 +38,4 @@ for my $file ( @bootstrap ) {
 
 close $out;
 
-system('../rakudo/perl6', '--target=PIR', '--output=lib/XML/Parser.pir', 'lib/XML/Parser.pm');
+system('perl6', '--target=PIR', '--output=lib/XML/Parser.pir', 'lib/XML/Parser.pm');
